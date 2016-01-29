@@ -1,0 +1,16 @@
+{
+    "name": "dachcom-digital/acf-yoast-seo-validation",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0+",
+    "description": "Add Yoast SEO Validation to your ACF Fields.",
+    "keywords": [ "wordpress", "plugin", "ACF", "Yoast SEO" ],
+    "homepage": "https://github.com/dachcom-digital/acf-yoast-seo-validation",
+    "authors": [
+        {
+            "name": "DACHCOM.DIGITAL Stefan Hagspiel",
+            "email": "shagspiel@dachcom.ch",
+            "homepage": "http://www.dachcom.com/",
+            "role": "Developer"
+        }
+    ]
+}

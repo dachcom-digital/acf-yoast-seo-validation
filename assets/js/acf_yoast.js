@@ -1,3 +1,17 @@
+/**
+ *
+ * Add live SEO Validation to Yoast SEO while having custom ACF Fields.
+ * Works also with Flexible Content and Repeater Fields.
+ * https://github.com/dachcom-digital/acf-yoast-seo-validation.git
+ *
+ * Include this Javascript ONLY in BackEnd.
+ *
+ * @author: DACHCOM.DIGITAL | Stefan Hagspiel <shagspiel@dachcom.ch>
+ * @version: 1.1.0
+ *
+ * All rights reserved.
+ *
+ */
 (function ($) {
 
     var acfPlugin;

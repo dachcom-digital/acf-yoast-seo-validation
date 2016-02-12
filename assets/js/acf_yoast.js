@@ -21,35 +21,20 @@
         this.pluginName = 'acfPlugin';
     };
 
-    AcfPlugin.prototype.initContent = function ($el) {
-        this.setContent($el, true, false);
-    };
-
     /**
      * Set's the field content to use in the analysis
      *
      * @param {Object} $el The current element that was added or modified, as a
      * jQuery object
-     * @param {boolean} updateYoast If Yoast should be updated, default true
-     * @param {boolean} updateRepeater If repeaters should be updated, default true
      */
-    AcfPlugin.prototype.setContent = function ($el, updateYoast, updateRepeater) {
-        updateYoast = typeof updateYoast !== 'undefined' ? updateYoast : true;
-        updateRepeater = typeof updateRepeater !== 'undefined' ? updateRepeater : true;
-
+    AcfPlugin.prototype.setContent = function ($el) {
         $el = $el.closest('[data-name][data-type][data-key]');
 
-        var key = $el.data('key'),
-            type = $el.data('type'),
-            value = null,
-            childID = null,
-            parentKey = null;
+        var key = $el.attr('data-key'),
+            type = $el.attr('data-type'),
+            value = null;
 
-        var $parent = $el.parent('.acf-row');
-        if ($parent.length === 1) {
-            childID = $parent.data('id');
-            parentKey = $parent.closest('[data-name][data-type][data-key]').data('key');
-        }
+        var $parents = $el.parents('[data-name][data-type][data-key],[data-id]');
 
         switch (type) {
             case 'text' :
@@ -72,47 +57,52 @@
             case 'wysiwyg' :
                 value = $el.find('textarea').val();
                 break;
-            case 'repeater' :
-                if (updateRepeater) {
-                    this.updateRepeater($el);
-                }
             default :
                 value = null;
         }
 
         if (value !== null) {
-            if (childID === null) {
-                this.content[key] = value;
-            } else {
-                if (this.content[parentKey] === undefined) {
-                    this.content[parentKey] = {};
-                }
-                if (this.content[parentKey][childID] === undefined) {
-                    this.content[parentKey][childID] = {};
-                }
-                this.content[parentKey][childID][key] = value;
-            }
-            if (updateYoast) {
-                YoastSEO.app.pluginReloaded(this.pluginName);
-            }
+          var parentContent = this.content;
+          if ($parents.length > 0) {
+            // loop through the parents, in reverse order (top-level elements first)
+            $parents.get().reverse().forEach(function(element) {
+              var $parent = $(element);
+              // parent is either a row/layout (get the id) or a field (get the key)
+              var id = $parent.is('[data-id]') ? $parent.attr('data-id') : $parent.attr('data-key');
+              if (parentContent[id] === undefined) {
+                parentContent[id] = {};
+              }
+              parentContent = parentContent[id];
+            });
+          }
+          parentContent[key] = value;
+          YoastSEO.app.pluginReloaded(this.pluginName);
         }
         return true;
     };
 
     /**
-     * Update the fields of a repeater. This function removes and re-adds the
-     * fields in a repeater.
-     * @param {Object} $el The repeater element as jQuery object
+     * Delete an ACF-element: remove the element data from the content and update
+     * Yoast.
+     * @param {type} $el The removed element, either a repeater row or a layout
      */
-    AcfPlugin.prototype.updateRepeater = function($el) {
-        var _this = this;
-        // delete repeater field
-        delete _this.content[$el.data('key')];
-        // re-add the repeater subfields
-        $el.find('.acf-row:not(.acf-clone) .acf-field').each(function(índex, element) {
-            _this.setContent($(element), false, false);
+    AcfPlugin.prototype.removeContent = function($el) {
+      if ($el.attr('data-id') === 'acfcloneindex') {
+        return; // adding an element triggers remove on the clone, ignore this
+      }
+      var $parents = $el.parents('[data-name][data-type][data-key],[data-id]');
+      var parentContent = this.content;
+      if ($parents.length > 0) {
+        // loop through the parents, in reverse order (top-level elements first)
+        $parents.get().reverse().forEach(function(element) {
+          var $parent = $(element);
+          // parent is either a row/layout (get the id) or a field (get the key)
+          var id = $parent.is('[data-id]') ? $parent.attr('data-id') : $parent.attr('data-key');
+          parentContent = parentContent[id];
         });
-        YoastSEO.app.pluginReloaded(this.pluginName);
+      }
+      delete parentContent[$el.attr('data-id')];
+      YoastSEO.app.pluginReloaded(this.pluginName);
     };
 
     /**
@@ -140,27 +130,33 @@
             return yoastContent;
         }
         yoastContent += '\n';
-        $.each(this.content, function (k, v) {
-            if (typeof v === 'object') { // repeater
-                $.each(v, function(repeaterKey, repeaterValue) {
-                    $.each(repeaterValue, function(subkey, subvalue) {
-                        yoastContent += subvalue + '\n';
-                    });
-                });
-            } else {
-                yoastContent += v + '\n';
-            }
+        $.each(this.content, function (key, value) {
+          yoastContent = addSubContent(yoastContent, value);
         });
         return yoastContent;
     };
+
+    function addSubContent(yoastContent, subContent) {
+      if (typeof subContent === 'object') { // repeater or layout
+        $.each(subContent, function(containerKey, containerValue) {
+          $.each(containerValue, function(subkey, subvalue) {
+            yoastContent = addSubContent(yoastContent, subvalue);
+          });
+        });
+      } else {
+        yoastContent += subContent + '\n';
+      }
+      return yoastContent;
+    }
 
     $(window).on('YoastSEO:ready', function () {
         acfPlugin = new AcfPlugin();
         acfPlugin.registerPlugin();
         acfPlugin.registerModifications();
 
-        acf.add_action('load_field', acfPlugin.initContent.bind(acfPlugin));
+        acf.add_action('load_field', acfPlugin.setContent.bind(acfPlugin));
         acf.add_action('change', acfPlugin.setContent.bind(acfPlugin));
+        acf.add_action('remove', acfPlugin.removeContent.bind(acfPlugin));
     });
 
 }(jQuery));

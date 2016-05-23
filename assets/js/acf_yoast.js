@@ -126,8 +126,8 @@
      * @returns {String} The page content with added extra field contents
      */
     AcfPlugin.prototype.addAcfDataToContent = function (yoastContent) {
-        if (this.content.length === 0) {
-            return yoastContent;
+        if ($.isEmptyObject(this.content)) {
+          return yoastContent;
         }
         yoastContent += '\n';
         $.each(this.content, function (key, value) {

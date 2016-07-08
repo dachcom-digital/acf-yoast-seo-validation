@@ -21,6 +21,8 @@
         this.pluginName = 'acfPlugin';
     };
 
+    $.fn.reverse = Array.prototype.reverse;
+
     /**
      * Set's the field content to use in the analysis
      *
@@ -94,15 +96,20 @@
       var parentContent = this.content;
       if ($parents.length > 0) {
         // loop through the parents, in reverse order (top-level elements first)
-        $parents.get().reverse().forEach(function(element) {
-          var $parent = $(element);
+        $parents.reverse().each(function() {
+          var $parent = $(this);
           // parent is either a row/layout (get the id) or a field (get the key)
           var id = $parent.is('[data-id]') ? $parent.attr('data-id') : $parent.attr('data-key');
           parentContent = parentContent[id];
+          if (parentContent === undefined) {
+            return false;
+          }
         });
       }
-      delete parentContent[$el.attr('data-id')];
-      YoastSEO.app.pluginReloaded(this.pluginName);
+      if (parentContent !== undefined) {
+        delete parentContent[$el.attr('data-id')];
+        YoastSEO.app.pluginReloaded(this.pluginName);
+      }
     };
 
     /**

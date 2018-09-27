@@ -19,6 +19,7 @@
     var AcfPlugin = function () {
         this.content = {};
         this.pluginName = 'acfPlugin';
+        this.registered = false;
     };
 
     $.fn.reverse = Array.prototype.reverse;
@@ -78,7 +79,9 @@
             });
           }
           parentContent[key] = value;
-          YoastSEO.app.pluginReloaded(this.pluginName);
+          if (this.registered) {
+            YoastSEO.app.pluginReloaded(this.pluginName);
+          }
         }
         return true;
     };
@@ -108,7 +111,9 @@
       }
       if (parentContent !== undefined) {
         delete parentContent[$el.attr('data-id')];
-        YoastSEO.app.pluginReloaded(this.pluginName);
+        if (this.registered) {
+          YoastSEO.app.pluginReloaded(this.pluginName);
+        }
       }
     };
 
@@ -117,6 +122,7 @@
      */
     AcfPlugin.prototype.registerPlugin = function () {
         YoastSEO.app.registerPlugin(this.pluginName, {status: 'ready'});
+        this.registered = true;
     };
 
     /**
@@ -156,14 +162,27 @@
       return yoastContent;
     }
 
-    $(window).on('YoastSEO:ready', function () {
-        acfPlugin = new AcfPlugin();
-        acfPlugin.registerPlugin();
-        acfPlugin.registerModifications();
+    acfPlugin = new AcfPlugin();
 
-        acf.add_action('load_field', acfPlugin.setContent.bind(acfPlugin));
-        acf.add_action('change', acfPlugin.setContent.bind(acfPlugin));
-        acf.add_action('remove', acfPlugin.removeContent.bind(acfPlugin));
+    $(document).ready(function() {
+      acf.add_action('load_field', acfPlugin.setContent.bind(acfPlugin));
+      acf.add_action('remove', acfPlugin.removeContent.bind(acfPlugin));
+
+      // The 'change' action is removed in ACF 5.7.0
+      acf.add_action('change', acfPlugin.setContent.bind(acfPlugin));
+      // trigger setContent on field change
+      if (acf.addAction) {
+        acf.addAction('new_field', function(field) {
+          field.on('change', function() {
+            acfPlugin.setContent(field.$el);
+          });
+        });
+      }
+    });
+
+    $(window).on('YoastSEO:ready', function () {
+      acfPlugin.registerPlugin();
+      acfPlugin.registerModifications();
     });
 
 }(jQuery));

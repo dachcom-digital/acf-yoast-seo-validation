@@ -162,8 +162,18 @@
         acfPlugin.registerModifications();
 
         acf.add_action('load_field', acfPlugin.setContent.bind(acfPlugin));
-        acf.add_action('change', acfPlugin.setContent.bind(acfPlugin));
         acf.add_action('remove', acfPlugin.removeContent.bind(acfPlugin));
+
+        // The 'change' action is removed in ACF 5.7.0
+        acf.add_action('change', acfPlugin.setContent.bind(acfPlugin));
+        // trigger setContent on field change
+        if (acf.addAction) {
+          acf.addAction('new_field', function(field) {
+            field.on('change', function() {
+              acfPlugin.setContent(field.$el);
+            });
+          });
+        }
     });
 
 }(jQuery));

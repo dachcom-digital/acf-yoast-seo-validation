@@ -21,9 +21,13 @@ Class AcfYoastSeoValidator {
 
     public static function bind_js() {
 
-        if (defined('WPSEO_VERSION')) {
-            wp_enqueue_script('acf_yoast_seo_validator', plugin_dir_url( __FILE__ ) . 'assets/js/acf_yoast.js', false, false, true);
+        if (!defined('WPSEO_VERSION')) {
+            return;
         }
+        if (get_current_screen()->base !== 'post') {
+            return;
+        }
+        wp_enqueue_script('acf_yoast_seo_validator', plugin_dir_url( __FILE__ ) . 'assets/js/acf_yoast.js', false, false, true);
     }
 }
 
